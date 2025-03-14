@@ -1,0 +1,89 @@
+---
+- name: Check if Docker is installed
+  ansible.builtin.command: docker --version
+  register: docker_check
+  failed_when: false
+  changed_when: false
+
+- name: Install Docker if not installed
+  when: docker_check.rc != 0
+  block:
+    - name: Install required system packages
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release
+
+    - name: Add Docker GPG apt key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        
+    - name: Install Docker packages
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+        
+    - name: Add user to docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+      register: docker_user_added
+      
+    - name: Reset connection to apply group changes
+      when: docker_user_added.changed
+      ansible.builtin.meta: reset_connection
+
+- name: Creates portal data directory
+  tags: portal
+  ansible.builtin.file:
+    path: "/docker"
+    state: directory
+
+- name: Upload docker-compose
+  tags: portal
+  ansible.builtin.template:
+    src: docker-compose.yaml
+    dest: /docker/docker-compose.yaml
+
+- name: Upload .env
+  tags: portal
+  ansible.builtin.template:
+    src: .env
+    dest: /docker/.env
+
+- name: Upload tethys.config.yml
+  tags: portal
+  ansible.builtin.template:
+    src: tethys.config.yml
+    dest: /docker/tethys.config.yml
+
+- name: Upload portal-key
+  tags: portal
+  ansible.builtin.template:
+    src: portal-key
+    dest: /docker/portal-key
+
+- name: Run portal docker
+  tags: portal
+  ansible.builtin.shell: |
+    docker compose -f /docker/docker-compose.yaml up -d

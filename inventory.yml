@@ -1,0 +1,6 @@
+portals:
+  hosts:
+    portal-node-1:
+      ansible_host: ec2-56-124-68-179.sa-east-1.compute.amazonaws.com
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ~/Downloads/portal-node-2.pem
