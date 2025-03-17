@@ -1,0 +1,96 @@
+---
+# Tasks to set up monitoring infrastructure with Prometheus and Grafana
+
+- name: Create monitoring directory structure
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "/opt/monitoring"
+    - "/opt/monitoring/prometheus"
+    - "/opt/monitoring/grafana"
+    - "/opt/monitoring/grafana/provisioning"
+    - "/opt/monitoring/grafana/provisioning/datasources"
+    - "/opt/monitoring/grafana/provisioning/dashboards"
+    - "/opt/monitoring/grafana/dashboards"
+
+- name: Copy Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus/prometheus.yml
+    dest: /opt/monitoring/prometheus/prometheus.yml
+    mode: '0644'
+  notify: restart prometheus
+
+- name: Copy Grafana datasource configuration
+  ansible.builtin.template:
+    src: grafana/provisioning/datasources/datasource.yml
+    dest: /opt/monitoring/grafana/provisioning/datasources/datasource.yml
+    mode: '0644'
+  notify: restart grafana
+
+- name: Copy Grafana dashboard provisioning configuration
+  ansible.builtin.template:
+    src: grafana/provisioning/dashboards/dashboards.yml
+    dest: /opt/monitoring/grafana/provisioning/dashboards/dashboards.yml
+    mode: '0644'
+  notify: restart grafana
+
+- name: Copy Grafana dashboard JSON
+  ansible.builtin.template:
+    src: grafana/dashboards/query_gateway_dashboard.json
+    dest: /opt/monitoring/grafana/dashboards/query_gateway_dashboard.json
+    mode: '0644'
+  notify: restart grafana
+
+- name: Copy Docker Compose file for monitoring services
+  ansible.builtin.template:
+    src: docker-compose-monitoring.yaml
+    dest: /opt/monitoring/docker-compose.yaml
+    mode: '0644'
+  notify: restart grafana
+
+- name: Set up environment variable for Grafana admin password
+  ansible.builtin.lineinfile:
+    path: /opt/monitoring/.env
+    line: "GRAFANA_ADMIN_PASSWORD=admin"
+    create: yes
+    mode: '0600'
+  no_log: true
+
+- name: Stop existing monitoring services if any
+  community.docker.docker_compose_v2:
+    project_src: /opt/monitoring
+    state: absent
+  ignore_errors: yes
+
+- name: Create and start monitoring services
+  community.docker.docker_compose_v2:
+    project_src: /opt/monitoring
+    state: present
+  register: output
+
+- name: Show deployment results
+  ansible.builtin.debug:
+    var: output
+
+- name: Verify services are running
+  ansible.builtin.assert:
+    that:
+      - prometheus_container.State == 'running'
+      - grafana_container.State == 'running'
+  vars:
+    prometheus_container: >-
+      {{ output.containers | selectattr("Service", "equalto", "prometheus") | first }}
+    grafana_container: >-
+      {{ output.containers | selectattr("Service", "equalto", "grafana") | first }}
+
+# - name: Open firewall ports for monitoring
+#   ansible.builtin.ufw:
+#     rule: allow
+#     port: "{{ item }}"
+#     proto: tcp
+#     state: enabled
+#   loop:
+#     - '3000'  # Grafana
+#     - '9090'  # Prometheus 

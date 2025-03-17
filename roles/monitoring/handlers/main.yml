@@ -1,0 +1,21 @@
+---
+# Handlers for monitoring role
+
+- name: restart prometheus
+  community.docker.docker_compose_v2:
+    project_src: /opt/monitoring
+    services:
+      - prometheus
+    state: restarted
+
+- name: restart grafana
+  community.docker.docker_compose_v2:
+    project_src: /opt/monitoring
+    services:
+      - grafana
+    state: restarted
+
+- name: reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded 

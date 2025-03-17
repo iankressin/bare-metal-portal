@@ -12,30 +12,73 @@
     state: present
     update_cache: true
 
-- name: Allow HTTP through firewall
+# - name: Allow SSH through firewall
+#   ansible.builtin.ufw:
+#     rule: allow
+#     port: '22'
+#     proto: tcp
+#     state: enabled
+
+# - name: Allow HTTP through firewall
+#   ansible.builtin.ufw:
+#     rule: allow
+#     port: '80'
+#     proto: tcp
+#     state: enabled
+
+# - name: Allow HTTPS through firewall
+#   ansible.builtin.ufw:
+#     rule: allow
+#     port: '443'
+#     proto: tcp
+#     state: enabled
+
+# - name: Allow portal port through firewall
+#   ansible.builtin.ufw:
+#     rule: allow
+#     port: '8000'
+#     proto: tcp
+#     state: enabled
+
+- name: Open firewall ports
   ansible.builtin.ufw:
     rule: allow
-    port: '80'
+    port: "{{ item }}"
     proto: tcp
     state: enabled
+  loop:
+    - '3000'  # Grafana
+    - '9090'  # Prometheus 
+    - '8000'  # Portal
+    - '443'  # HTTPS
+    - '80'  # HTTP
+    - '22'  # SSH
 
-- name: Allow HTTPS through firewall
-  ansible.builtin.ufw:
-    rule: allow
-    port: '443'
-    proto: tcp
-    state: enabled
-
-- name: Create Nginx reverse proxy configuration
+- name: Create Nginx reverse proxy configuration for Portal
   ansible.builtin.template:
     src: nginx-proxy.conf.j2
     dest: /etc/nginx/sites-available/portal-proxy
   notify: reload nginx
 
-- name: Enable Nginx site
+
+- name: Create Nginx reverse proxy configuration for Grafana
+  ansible.builtin.template:
+    src: grana-nginx.conf.j2
+    dest: /etc/nginx/sites-available/grana-proxy
+  notify: reload nginx
+
+- name: Enable Nginx site for Portal
   ansible.builtin.file:
     src: /etc/nginx/sites-available/portal-proxy
     dest: /etc/nginx/sites-enabled/portal-proxy
+    state: link
+    force: yes
+  notify: reload nginx
+
+- name: Enable Nginx site for Grafana
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/grana-proxy
+    dest: /etc/nginx/sites-enabled/grana-proxy
     state: link
     force: yes
   notify: reload nginx
