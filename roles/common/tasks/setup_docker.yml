@@ -1,4 +1,3 @@
----
 - name: Check if Docker is installed
   ansible.builtin.command: docker --version
   register: docker_check
@@ -15,7 +14,6 @@
         update_cache: true
       loop:
         - apt-transport-https
-        - ca-certificates
         - curl
         - gnupg
         - lsb-release
@@ -52,38 +50,3 @@
     - name: Reset connection to apply group changes
       when: docker_user_added.changed
       ansible.builtin.meta: reset_connection
-
-- name: Creates portal data directory
-  tags: portal
-  ansible.builtin.file:
-    path: "/docker"
-    state: directory
-
-- name: Upload docker-compose
-  tags: portal
-  ansible.builtin.template:
-    src: docker-compose.yaml
-    dest: /docker/docker-compose.yaml
-
-- name: Upload .env
-  tags: portal
-  ansible.builtin.template:
-    src: .env
-    dest: /docker/.env
-
-- name: Upload tethys.config.yml
-  tags: portal
-  ansible.builtin.template:
-    src: tethys.config.yml
-    dest: /docker/tethys.config.yml
-
-- name: Upload portal-key
-  tags: portal
-  ansible.builtin.template:
-    src: portal-key
-    dest: /docker/portal-key
-
-- name: Run portal docker
-  tags: portal
-  ansible.builtin.shell: |
-    docker compose -f /docker/docker-compose.yaml up -d

@@ -1,6 +1,4 @@
 ---
-# Tasks to set up monitoring infrastructure with Prometheus and Grafana
-
 - name: Create monitoring directory structure
   ansible.builtin.file:
     path: "{{ item }}"
@@ -24,21 +22,21 @@
 
 - name: Copy Grafana datasource configuration
   ansible.builtin.template:
-    src: grafana/provisioning/datasources/datasource.yml
+    src: grafana/datasource.yml
     dest: /opt/monitoring/grafana/provisioning/datasources/datasource.yml
     mode: '0644'
   notify: restart grafana
 
 - name: Copy Grafana dashboard provisioning configuration
   ansible.builtin.template:
-    src: grafana/provisioning/dashboards/dashboards.yml
+    src: grafana/dashboards.yml
     dest: /opt/monitoring/grafana/provisioning/dashboards/dashboards.yml
     mode: '0644'
   notify: restart grafana
 
 - name: Copy Grafana dashboard JSON
   ansible.builtin.template:
-    src: grafana/dashboards/query_gateway_dashboard.json
+    src: grafana/query_gateway_dashboard.json
     dest: /opt/monitoring/grafana/dashboards/query_gateway_dashboard.json
     mode: '0644'
   notify: restart grafana
@@ -84,13 +82,3 @@
       {{ output.containers | selectattr("Service", "equalto", "prometheus") | first }}
     grafana_container: >-
       {{ output.containers | selectattr("Service", "equalto", "grafana") | first }}
-
-# - name: Open firewall ports for monitoring
-#   ansible.builtin.ufw:
-#     rule: allow
-#     port: "{{ item }}"
-#     proto: tcp
-#     state: enabled
-#   loop:
-#     - '3000'  # Grafana
-#     - '9090'  # Prometheus 

@@ -1,7 +1,6 @@
+---
 - hosts: portals
   vars_files:
     - vars/datasets.yml
   roles:
-    - common
     - monitoring
-    - portal

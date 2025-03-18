@@ -1,0 +1,55 @@
+---
+- name: Open firewall ports
+  ansible.builtin.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    state: enabled
+  loop:
+    - '3000'  # Grafana
+    - '9090'  # Prometheus 
+    - '8000'  # Portal
+    - '443'  # HTTPS
+    - '80'  # HTTP
+    - '22'  # SSH
+
+# Use apt to check if Nginx is installed, works better with check mode
+- name: Check if Nginx is installed
+  ansible.builtin.package_facts:
+    manager: auto
+  when: ansible_facts.packages is not defined
+
+- name: Install Nginx if not installed
+  when: "'nginx' not in ansible_facts.packages"
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Create Nginx reverse proxy configuration for Portal
+  ansible.builtin.template:
+    src: nginx/nginx-proxy.conf.j2
+    dest: /etc/nginx/sites-available/portal-proxy
+  notify: reload nginx
+
+- name: Enable Nginx site for Portal
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/portal-proxy
+    dest: /etc/nginx/sites-enabled/portal-proxy
+    state: link
+    force: yes
+  notify: reload nginx
+
+- name: Remove default Nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+# Use check_mode: no for the service check in check mode
+- name: Ensure Nginx is running and enabled
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes
+  ignore_errors: "{{ ansible_check_mode }}" 

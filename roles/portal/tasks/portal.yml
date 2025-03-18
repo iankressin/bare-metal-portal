@@ -1,0 +1,35 @@
+---
+- name: Creates portal data directory
+  tags: portal
+  ansible.builtin.file:
+    path: "/docker"
+    state: directory
+
+- name: Upload docker-compose
+  tags: portal
+  ansible.builtin.template:
+    src: portal/docker-compose.yaml
+    dest: /docker/docker-compose.yaml
+
+- name: Upload .env
+  tags: portal
+  ansible.builtin.template:
+    src: portal/.env
+    dest: /docker/.env
+
+- name: Upload tethys.config.yml
+  tags: portal
+  ansible.builtin.template:
+    src: portal/tethys.config.yml
+    dest: /docker/tethys.config.yml
+
+- name: Upload portal-key
+  tags: portal
+  ansible.builtin.template:
+    src: portal/portal-key
+    dest: /docker/portal-key
+
+- name: Run portal docker
+  tags: portal
+  ansible.builtin.shell: |
+    docker compose -f /docker/docker-compose.yaml up -d
