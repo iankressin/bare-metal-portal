@@ -2038,11 +2038,11 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by($group, dataset_id) (rate(portal_stream_blocks_sum{dataset_id=~\"$datasets\"}[$__rate_interval]))",
+          "expr": "sum by(dataset_id $group) (rate(portal_stream_blocks_sum{dataset_id=~\"$datasets\"}[$__rate_interval]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
-          "legendFormat": "{{dataset_id}}",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A",
           "useBackend": false
